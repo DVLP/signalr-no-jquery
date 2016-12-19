@@ -28,5 +28,5 @@
     "type": "git",
     "url": "git+https://github.com/DVLP/signalr-no-jquery.git"
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
