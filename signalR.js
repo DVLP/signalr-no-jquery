@@ -1,3 +1,5 @@
+'use strict';
+
 const jQueryShim = require('./jQueryShim');
 
 /* jquery.signalR.core.js */

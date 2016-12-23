@@ -1,3 +1,5 @@
+'use strict';
+
 const jQueryDeferred = require('jquery-deferred');
 
 const jqueryFunction = function(subject) {
