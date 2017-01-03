@@ -1308,7 +1308,7 @@ const jQueryShim = require('./jQueryShim');
         getUrl: function (connection, transport, reconnecting, poll, ajaxPost) {
             /// <summary>Gets the url for making a GET based connect request</summary>
             var baseUrl = transport === "webSockets" ? "" : connection.baseUrl,
-                url = baseUrl + connection.url,
+                url = baseUrl + connection.appRelativeUrl,
                 qs = "transport=" + transport;
 
             if (!ajaxPost && connection.groupsToken) {
@@ -2958,4 +2958,5 @@ const jQueryShim = require('./jQueryShim');
     $.signalR.version = "2.2.1";
 }(jQueryShim));
 
-module.exports = jQueryShim.hubConnection;
+export const hubConnection = jQueryShim.hubConnection;
+export const signalR = jQueryShim.signalR;
