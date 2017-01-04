@@ -15,10 +15,10 @@ npm i -D signalr-no-jquery
 
 #### ES6 Loader
 
+
 ```
 import { hubConnection } from 'signalr-no-jquery';
 ```
-
 
 #### HTML
 
@@ -38,6 +38,14 @@ connection.start({ jsonp: true })
 .done(function(){ console.log('Now connected, connection ID=' + connection.id); })
 .fail(function(){ console.log('Could not connect'); });
 
+```
+
+#### Update 4/01/2017: accessing global setttings like through former $.connection
+
+Note: This is an object holding global settings and it's not the same as connection handle returned by hubConnection
+
+```
+import { connection } from 'signalr-no-jquery';
 ```
 
 ### Problems
