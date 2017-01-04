@@ -38,5 +38,5 @@
   "scripts": {
     "build": "babel src --presets babel-preset-es2015 --out-dir build"
   },
-  "version": "0.1.5"
+  "version": "0.1.6"
 }
