@@ -16,7 +16,7 @@ npm i -D signalr-no-jquery
 #### ES6 Loader
 
 ```
-import hubConnection from 'signalr-no-jquery';
+import { hubConnection } from 'signalr-no-jquery';
 ```
 
 
