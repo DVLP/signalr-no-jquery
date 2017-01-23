@@ -51,7 +51,12 @@ const jqueryFunction = function(subject) {
 };
 
 const ajax = function(options) {
-  const request = new XMLHttpRequest();
+  const xhr = function() {
+    try {
+      return new window.XMLHttpRequest();
+    } catch (e) { }
+  };
+  const request = xhr();
   request.onreadystatechange = () => {
     if (request.readyState !== 4) {
       return;
@@ -72,21 +77,25 @@ const ajax = function(options) {
   return {
     abort: function(reason) {
       return request.abort(reason);
-    }
-  };
+    },
+    xhrSupported: (function() {
+      var xhrSupported = xhr();
+      return !!xhrSupported && ("withCredentials" in xhrSupported);
+    })()
+  };  
 };
 
 module.exports = jQueryDeferred.extend(
   jqueryFunction,
   jQueryDeferred,
   {
-  defaultAjaxHeaders: null,
-  ajax: ajax,
-  inArray: (arr, item) => arr.indexOf(item) !== -1,
-  trim: str => str && str.trim(),
-  isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
-  makeArray: arr => [].slice.call(arr, 0),
-  support: {
-    cors: false
-  }
-});
+    defaultAjaxHeaders: null,
+    ajax: ajax,
+    inArray: (arr,item) => arr.indexOf(item) !== -1,
+    trim: str => str && str.trim(),
+    isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
+    makeArray: arr => [].slice.call(arr,0),
+    support: {
+      cors: ajax.xhrSupported
+    }
+  });
