@@ -57,7 +57,12 @@ var jqueryFunction = function jqueryFunction(subject) {
 };
 
 var ajax = function ajax(options) {
-  var request = new XMLHttpRequest();
+  var xhr = function xhr() {
+    try {
+      return new window.XMLHttpRequest();
+    } catch (e) {}
+  };
+  var request = xhr();
   request.onreadystatechange = function () {
     if (request.readyState !== 4) {
       return;
@@ -78,7 +83,11 @@ var ajax = function ajax(options) {
   return {
     abort: function abort(reason) {
       return request.abort(reason);
-    }
+    },
+    xhrSupported: function () {
+      var xhrSupported = xhr();
+      return !!xhrSupported && "withCredentials" in xhrSupported;
+    }()
   };
 };
 
@@ -98,6 +107,6 @@ module.exports = jQueryDeferred.extend(jqueryFunction, jQueryDeferred, {
     return [].slice.call(arr, 0);
   },
   support: {
-    cors: false
+    cors: ajax.xhrSupported
   }
 });
