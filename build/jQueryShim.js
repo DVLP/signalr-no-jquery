@@ -85,8 +85,7 @@ var ajax = function ajax(options) {
       return request.abort(reason);
     },
     xhrSupported: function () {
-      var xhrSupported = xhr();
-      return !!xhrSupported && "withCredentials" in xhrSupported;
+      return !!xhr();
     }()
   };
 };
@@ -107,6 +106,6 @@ module.exports = jQueryDeferred.extend(jqueryFunction, jQueryDeferred, {
     return [].slice.call(arr, 0);
   },
   support: {
-    cors: ajax.xhrSupported
+    cors: ajax.xhrSupported && "withCredentials" in xhrSupported
   }
 });

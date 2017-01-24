@@ -95,6 +95,6 @@ module.exports = jQueryDeferred.extend(
     isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
     makeArray: arr => [].slice.call(arr,0),
     support: {
-      cors: ajax.xhrSupported && ("withCredentials" in xhrSupported);
+      cors: ajax.xhrSupported && ("withCredentials" in xhrSupported)
     }
   });
