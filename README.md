@@ -26,6 +26,7 @@ Use just like regular signalR but without $ namespace
 
 ```
 const connection = hubConnection('http://[address]:[port]', options);
+//window.location.origin
 const hubProxy = connection.createHubProxy('hubNameString');
 
 // set up event listeners i.e. for incoming "message" event
