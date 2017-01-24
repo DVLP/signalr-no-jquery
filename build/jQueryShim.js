@@ -56,12 +56,13 @@ var jqueryFunction = function jqueryFunction(subject) {
   };
 };
 
+var xhr = function xhr() {
+  try {
+    return new window.XMLHttpRequest();
+  } catch (e) {}
+};
+
 var ajax = function ajax(options) {
-  var xhr = function xhr() {
-    try {
-      return new window.XMLHttpRequest();
-    } catch (e) {}
-  };
   var request = xhr();
   request.onreadystatechange = function () {
     if (request.readyState !== 4) {
@@ -83,11 +84,7 @@ var ajax = function ajax(options) {
   return {
     abort: function abort(reason) {
       return request.abort(reason);
-    },
-    xhrSupported: function () {
-      var xhrSupported = xhr();
-      return !!xhrSupported && "withCredentials" in xhrSupported;
-    }()
+    }
   };
 };
 
@@ -107,6 +104,9 @@ module.exports = jQueryDeferred.extend(jqueryFunction, jQueryDeferred, {
     return [].slice.call(arr, 0);
   },
   support: {
-    cors: ajax.xhrSupported
+    cors: function () {
+      var xhrObj = xhr();
+      return !!xhrObj && "withCredentials" in xhrObj;
+    }()
   }
 });
