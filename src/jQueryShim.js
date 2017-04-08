@@ -87,30 +87,18 @@ module.exports = jQueryDeferred.extend(
   jqueryFunction,
   jQueryDeferred,
   {
-<<<<<<< HEAD
-  defaultAjaxHeaders: null,
-  ajax: ajax,
-  inArray: (arr, item) => arr.indexOf(item) !== -1,
-  trim: str => str && str.trim(),
-  isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
-  makeArray: arr => [].slice.call(arr, 0),
-  param: obj => jQueryParam(obj),
-  support: {
-    cors: false
-  }
-});
-=======
     defaultAjaxHeaders: null,
     ajax: ajax,
     inArray: (arr,item) => arr.indexOf(item) !== -1,
     trim: str => str && str.trim(),
     isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
     makeArray: arr => [].slice.call(arr,0),
+    param: obj => jQueryParam(obj),
     support: {
       cors: (function() {
         const xhrObj = xhr();
         return !!xhrObj && ("withCredentials" in xhrObj);
       })()
     }
-  });
->>>>>>> 29ed8725d3985a7b2487bccc277937c327ff3de1
+  })
+  
