@@ -56,8 +56,14 @@ var jqueryFunction = function jqueryFunction(subject) {
   };
 };
 
+var xhr = function xhr() {
+  try {
+    return new window.XMLHttpRequest();
+  } catch (e) {}
+};
+
 var ajax = function ajax(options) {
-  var request = new XMLHttpRequest();
+  var request = xhr();
   request.onreadystatechange = function () {
     if (request.readyState !== 4) {
       return;
@@ -98,6 +104,9 @@ module.exports = jQueryDeferred.extend(jqueryFunction, jQueryDeferred, {
     return [].slice.call(arr, 0);
   },
   support: {
-    cors: false
+    cors: function () {
+      var xhrObj = xhr();
+      return !!xhrObj && "withCredentials" in xhrObj;
+    }()
   }
 });

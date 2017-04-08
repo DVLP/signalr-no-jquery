@@ -51,8 +51,14 @@ const jqueryFunction = function(subject) {
   };
 };
 
+const xhr = function() {
+  try {
+    return new window.XMLHttpRequest();
+  } catch (e) { }
+};
+
 const ajax = function(options) {
-  const request = new XMLHttpRequest();
+  const request = xhr();
   request.onreadystatechange = () => {
     if (request.readyState !== 4) {
       return;
@@ -81,6 +87,7 @@ module.exports = jQueryDeferred.extend(
   jqueryFunction,
   jQueryDeferred,
   {
+<<<<<<< HEAD
   defaultAjaxHeaders: null,
   ajax: ajax,
   inArray: (arr, item) => arr.indexOf(item) !== -1,
@@ -92,3 +99,18 @@ module.exports = jQueryDeferred.extend(
     cors: false
   }
 });
+=======
+    defaultAjaxHeaders: null,
+    ajax: ajax,
+    inArray: (arr,item) => arr.indexOf(item) !== -1,
+    trim: str => str && str.trim(),
+    isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
+    makeArray: arr => [].slice.call(arr,0),
+    support: {
+      cors: (function() {
+        const xhrObj = xhr();
+        return !!xhrObj && ("withCredentials" in xhrObj);
+      })()
+    }
+  });
+>>>>>>> 29ed8725d3985a7b2487bccc277937c327ff3de1
