@@ -1,6 +1,7 @@
 'use strict';
 
-const jQueryDeferred = require('jquery-deferred');
+const jQueryDeferred = require('jquery-deferred')
+const jQueryParam = require('jquery-param')
 
 const jqueryFunction = function(subject) {
   let events = subject.events || {};
@@ -86,6 +87,7 @@ module.exports = jQueryDeferred.extend(
   trim: str => str && str.trim(),
   isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
   makeArray: arr => [].slice.call(arr, 0),
+  param: obj => jQueryParam(obj),
   support: {
     cors: false
   }
