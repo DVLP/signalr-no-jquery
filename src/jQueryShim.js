@@ -79,7 +79,7 @@ const ajax = function(options) {
     abort: function(reason) {
       return request.abort(reason);
     }
-  };  
+  };
 };
 
 module.exports = jQueryDeferred.extend(
