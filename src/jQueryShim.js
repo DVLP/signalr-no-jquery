@@ -54,7 +54,7 @@ const jqueryFunction = function(subject) {
 const xhr = function() {
   try {
     return new window.XMLHttpRequest();
-  } catch (e) { }
+  } catch (e) {}
 };
 
 const ajax = function(options) {
