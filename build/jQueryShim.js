@@ -1,47 +1,42 @@
 'use strict';
 
-var jQueryDeferred = require('jquery-deferred');
+const jQueryDeferred = require('jquery-deferred');
+const jQueryParam = require('jquery-param');
 
-var jqueryFunction = function jqueryFunction(subject) {
-  var events = subject.events || {};
+const jqueryFunction = function(subject) {
+  let events = subject.events || {};
 
-  if (subject && subject === subject.window) return {
-    0: subject,
-    load: function load(handler) {
-      return subject.addEventListener('load', handler, false);
-    },
-    bind: function bind(event, handler) {
-      return subject.addEventListener(event, handler, false);
-    },
-    unbind: function unbind(event, handler) {
-      return subject.removeEventListener(event, handler, false);
-    }
-  };
+  if (subject && subject === subject.window)
+    return {
+      0: subject,
+      load: (handler) => subject.addEventListener('load', handler, false),
+      bind: (event, handler) => subject.addEventListener(event, handler, false),
+      unbind: (event, handler) => subject.removeEventListener(event, handler, false)
+    };
 
   return {
     0: subject,
 
-    unbind: function unbind(event, handler) {
-      var handlers = events[event] || [];
+    unbind(event, handler) {
+      let handlers = events[event] || [];
 
       if (handler) {
-        var idx = handlers.indexOf(handler);
+        let idx = handlers.indexOf(handler);
         if (idx !== -1) handlers.splice(idx, 1);
       } else handlers = [];
 
       events[event] = handlers;
       subject.events = events;
+
     },
-    bind: function bind(event, handler) {
-      var current = events[event] || [];
+    bind(event, handler) {
+      let current = events[event] || [];
       events[event] = current.concat(handler);
       subject.events = events;
     },
-    triggerHandler: function triggerHandler(event, args) {
-      var _this = this;
-
-      var handlers = events[event] || [];
-      handlers.forEach(function (fn) {
+    triggerHandler(event, args) {
+      let handlers = events[event] || [];
+      handlers.forEach(fn => {
         if (args && args[0] && args[0].type === undefined) {
           args = [{
             type: event
@@ -50,15 +45,21 @@ var jqueryFunction = function jqueryFunction(subject) {
           args = args || [];
         }
 
-        fn.apply(_this, args);
+        fn.apply(this, args);
       });
     }
   };
 };
 
-var ajax = function ajax(options) {
-  var request = new XMLHttpRequest();
-  request.onreadystatechange = function () {
+const xhr = function() {
+  try {
+    return new window.XMLHttpRequest();
+  } catch (e) { }
+};
+
+const ajax = function(options) {
+  const request = xhr();
+  request.onreadystatechange = () => {
     if (request.readyState !== 4) {
       return;
     }
@@ -73,31 +74,31 @@ var ajax = function ajax(options) {
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
 
-  request.send(options.data.data && 'data=' + options.data.data);
+  request.send(options.data.data && `data=${options.data.data}`);
 
   return {
-    abort: function abort(reason) {
+    abort: function(reason) {
       return request.abort(reason);
     }
   };
 };
 
-module.exports = jQueryDeferred.extend(jqueryFunction, jQueryDeferred, {
-  defaultAjaxHeaders: null,
-  ajax: ajax,
-  inArray: function inArray(arr, item) {
-    return arr.indexOf(item) !== -1;
-  },
-  trim: function trim(str) {
-    return str && str.trim();
-  },
-  isEmptyObject: function isEmptyObject(obj) {
-    return !obj || Object.keys(obj).length === 0;
-  },
-  makeArray: function makeArray(arr) {
-    return [].slice.call(arr, 0);
-  },
-  support: {
-    cors: false
-  }
-});
+module.exports = jQueryDeferred.extend(
+  jqueryFunction,
+  jQueryDeferred,
+  {
+    defaultAjaxHeaders: null,
+    ajax: ajax,
+    inArray: (arr,item) => arr.indexOf(item) !== -1,
+    trim: str => str && str.trim(),
+    isEmptyObject: obj => !obj || Object.keys(obj).length === 0,
+    makeArray: arr => [].slice.call(arr,0),
+    param: obj => jQueryParam(obj),
+    support: {
+      cors: (function() {
+        const xhrObj = xhr();
+        return !!xhrObj && ("withCredentials" in xhrObj);
+      })()
+    }
+  })
+  
