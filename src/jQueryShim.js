@@ -65,7 +65,11 @@ const ajax = function(options) {
     }
 
     if (request.status === 200 && !request._hasError) {
-      options.success && options.success(JSON.parse(request.responseText));
+      try {
+        options.success && options.success(JSON.parse(request.responseText));
+      } catch (e) {
+        options.error && options.error(request);
+      }
     } else {
       options.error && options.error(request);
     }
