@@ -78,8 +78,7 @@ const ajax = function(options) {
   request.withCredentials = options.xhrFields.withCredentials;
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
-
-  request.send(options.data.data && `data=${options.data.data}`);
+  request.send(options.data.data && `data=${encodeURIComponent(options.data.data)}`);
 
   return {
     abort: function(reason) {
