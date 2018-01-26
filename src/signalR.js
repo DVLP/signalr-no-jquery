@@ -745,13 +745,13 @@ const jQueryShim = require('./jQueryShim');
 
                     if ($.isArray(config.transport)) {
                         $.each(config.transport, function (_, transport) {
-                            if ($.inArray(transport, supportedTransports) >= 0) {
+                            if ($.inArray(supportedTransports, transport)) {
                                 transports.push(transport);
                             }
                         });
                     } else if (config.transport === "auto") {
                         transports = supportedTransports;
-                    } else if ($.inArray(config.transport, supportedTransports) >= 0) {
+                    } else if ($.inArray(supportedTransports, config.transport)) {
                         transports.push(config.transport);
                     }
 
