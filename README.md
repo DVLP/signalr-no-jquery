@@ -9,9 +9,9 @@ jQueryShim file contains only bare-minimum of jQuery to make signalR client run.
 This package is not meant to be used with ASP.NET Core version of SignalR
 
 ### Usage
-
+```
 npm i -D signalr-no-jquery
-
+```
 
 #### ES6 Loader
 
@@ -39,6 +39,23 @@ connection.start({ jsonp: true })
 .fail(function(){ console.log('Could not connect'); });
 
 ```
+#### Integration with @types/Signalr
+
+If you want to have got strong typing just install @types/Signalr
+
+```
+npm install --save @types/signalr
+```
+
+and add at the begining of TypeScript file:
+
+```
+    /// <reference types="@types/signalr" />
+```
+Now in this file you can type for example
+```
+private connection: SignalR.Hub.Connection;
+```
 
 #### Update 4/01/2017: accessing global setttings like through former $.connection
 
@@ -51,3 +68,6 @@ import { connection } from 'signalr-no-jquery';
 ### Problems
 
 Feel free to create pull requests and raise issues https://github.com/DVLP/signalr-no-jquery/issues
+
+
+
