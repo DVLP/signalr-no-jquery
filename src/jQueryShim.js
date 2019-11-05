@@ -59,6 +59,11 @@ const xhr = function() {
 
 const ajax = function(options) {
   const request = xhr();
+  
+  if (options.xhrFields && options.xhrFields.withCredentials) {
+    request.withCredentials = true;
+  }
+  
   request.onreadystatechange = () => {
     if (request.readyState !== 4) {
       return;
