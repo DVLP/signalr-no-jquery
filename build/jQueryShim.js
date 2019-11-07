@@ -65,18 +65,28 @@ var xhr = function xhr() {
 
 var ajax = function ajax(options) {
   var request = xhr();
+
+  if (options.xhrFields && options.xhrFields.withCredentials) {
+    request.withCredentials = true;
+  }
+
   request.onreadystatechange = function () {
     if (request.readyState !== 4) {
       return;
     }
 
     if (request.status === 200 && !request._hasError) {
-      options.success && options.success(JSON.parse(request.responseText));
+      try {
+        options.success && options.success(JSON.parse(request.responseText));
+      } catch (e) {
+        options.error && options.error(request);
+      }
     } else {
       options.error && options.error(request);
     }
   };
 
+  request.withCredentials = options.xhrFields.withCredentials;
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
   request.send(options.data.data && 'data=' + encodeURIComponent(options.data.data));
