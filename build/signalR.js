@@ -1,6 +1,12 @@
-"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var jQueryShim = require('./jQueryShim');
 
 /* jquery.signalR.core.js */
 /*global window:false */
@@ -1079,7 +1085,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     $.connection = $.signalR = _signalR;
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.common.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1351,7 +1357,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
                 return url;
             }
 
-            if ((typeof qs === "undefined" ? "undefined" : _typeof(qs)) === "object") {
+            if ((typeof qs === 'undefined' ? 'undefined' : _typeof(qs)) === "object") {
                 return url + appender + $.param(qs);
             }
 
@@ -1747,7 +1753,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             connections: {}
         }
     };
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.webSockets.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1883,7 +1889,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.serverSentEvents.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2058,7 +2064,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.foreverFrame.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2309,7 +2315,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             }
         }
     };
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.longPolling.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2568,7 +2574,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.hubs.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3047,7 +3053,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     hubConnection.fn.init.prototype = hubConnection.fn;
 
     $.hubConnection = hubConnection;
-})(window.jQuery, window);
+})(jQueryShim, window);
 /* jquery.signalR.version.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3058,4 +3064,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 (function ($, undefined) {
     // This will be modified by the build script
     $.signalR.version = "2.4.1";
-})(window.jQuery);
+})(jQueryShim);
+
+var hubConnection = exports.hubConnection = jQueryShim.hubConnection;
+var signalR = exports.signalR = jQueryShim.signalR;
