@@ -89,6 +89,12 @@ var ajax = function ajax(options) {
   request.withCredentials = options.xhrFields.withCredentials;
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
+  if (options.headers) {
+    Object.keys(options.headers).forEach(key => {
+      const value = options.headers[key];
+      request.setRequestHeader(key, value);
+    });
+  }
   request.send(options.data.data && 'data=' + encodeURIComponent(options.data.data));
 
   return {
