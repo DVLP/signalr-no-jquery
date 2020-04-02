@@ -1,3 +1,8 @@
+'use strict';
+
+const jQueryShim = require('./jQueryShim');
+
+
 /* jquery.signalR.core.js */
 /*global window:false */
 /*!
@@ -1082,7 +1087,7 @@
 
     $.connection = $.signalR = signalR;
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.transports.common.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1806,7 +1811,7 @@
         }
     };
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.transports.webSockets.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1956,7 +1961,7 @@
         }
     };
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.transports.serverSentEvents.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2140,7 +2145,7 @@
         }
     };
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.transports.foreverFrame.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2396,7 +2401,7 @@
         }
     };
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.transports.longPolling.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2659,7 +2664,7 @@
         }
     };
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.hubs.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3138,7 +3143,7 @@
 
     $.hubConnection = hubConnection;
 
-}(window.jQuery, window));
+}(jQueryShim, window));
 /* jquery.signalR.version.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3149,4 +3154,7 @@
 (function ($, undefined) {
     // This will be modified by the build script
     $.signalR.version = "2.4.1";
-}(window.jQuery));
+}(jQueryShim));
+
+export const hubConnection = jQueryShim.hubConnection;
+export const signalR = jQueryShim.signalR;
