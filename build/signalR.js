@@ -7,14 +7,11 @@ exports.signalR = exports.hubConnection = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _signalrJqueryPolyfill = require("signalr-jquery-polyfill");
+var _jquery = require("jquery");
 
-var _signalrJqueryPolyfill2 = _interopRequireDefault(_signalrJqueryPolyfill);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
+//import jQueryShim from "signalr-jquery-polyfill";
 // const jQueryShim = require('./jQueryShim');
-
+var jQueryShim = _jquery.jQuery;
 
 /* jquery.signalR.core.js */
 /*global window:false */
@@ -1093,7 +1090,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
     }
 
     $.connection = $.signalR = _signalR;
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.common.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1761,7 +1758,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
             connections: {}
         }
     };
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.webSockets.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -1897,7 +1894,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.serverSentEvents.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2072,7 +2069,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.foreverFrame.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2323,7 +2320,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
             }
         }
     };
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.transports.longPolling.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -2582,7 +2579,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
             transportLogic.ajaxAbort(connection, async);
         }
     };
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.hubs.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3061,7 +3058,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
     hubConnection.fn.init.prototype = hubConnection.fn;
 
     $.hubConnection = hubConnection;
-})(_signalrJqueryPolyfill2.default, window);
+})(jQueryShim, window);
 /* jquery.signalR.version.js */
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
@@ -3072,7 +3069,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 (function ($, undefined) {
     // This will be modified by the build script
     $.signalR.version = "2.4.1";
-})(_signalrJqueryPolyfill2.default);
+})(jQueryShim);
 
-var hubConnection = exports.hubConnection = _signalrJqueryPolyfill2.default.hubConnection;
-var signalR = exports.signalR = _signalrJqueryPolyfill2.default.signalR;
+var hubConnection = exports.hubConnection = jQueryShim.hubConnection;
+var signalR = exports.signalR = jQueryShim.signalR;
