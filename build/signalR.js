@@ -1,17 +1,15 @@
 'use strict';
 
+//import jQueryShim from "signalr-jquery-polyfill";
+// const jQueryShim = require('./jQueryShim');
+
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.signalR = exports.hubConnection = undefined;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _jquery = require("jquery");
-
-//import jQueryShim from "signalr-jquery-polyfill";
-// const jQueryShim = require('./jQueryShim');
-var jQueryShim = _jquery.jQuery;
+var jQueryShim = window.jQuery;
 
 /* jquery.signalR.core.js */
 /*global window:false */
