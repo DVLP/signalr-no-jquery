@@ -1,9 +1,6 @@
 'use strict';
 
-
-//import jQueryShim from "signalr-jquery-polyfill";
-// const jQueryShim = require('./jQueryShim');
-const jQueryShim = window.jQuery;
+const jQueryShim = require('./jQueryShim');
 
 
 /* jquery.signalR.core.js */
