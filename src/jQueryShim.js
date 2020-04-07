@@ -59,11 +59,11 @@ const xhr = function() {
 
 const ajax = function(options) {
   const request = xhr();
-  
+
   if (options.xhrFields && options.xhrFields.withCredentials) {
     request.withCredentials = true;
   }
-  
+
   request.onreadystatechange = () => {
     if (request.readyState !== 4) {
       return;
@@ -96,7 +96,7 @@ const ajax = function(options) {
       request.setRequestHeader(key, value);
     });
   }
-  
+
   request.send(options.data.data && `data=${encodeURIComponent(options.data.data)}`);
 
   return {
@@ -123,5 +123,4 @@ module.exports = jQueryDeferred.extend(
         return !!xhrObj && ("withCredentials" in xhrObj);
       })()
     }
-  })
-  
+  });
