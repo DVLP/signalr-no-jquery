@@ -87,7 +87,7 @@ const ajax = function(options) {
 	} else if (options.url.indexOf("_=") === -1) {
     options.url += "&" + cacheBuster;
   } else {
-    options.url.replace(/_=\d+/, cacheBuster);
+    options.url = options.url.replace(/_=\d+/, cacheBuster);
   }
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
