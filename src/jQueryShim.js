@@ -81,15 +81,13 @@ const ajax = function(options) {
   };
 
   request.withCredentials = options.xhrFields.withCredentials;
-  var cacheBuster = "&_=" + new Date().getTime();
+  var cacheBuster = "_=" + new Date().getTime();
   if (options.url.indexOf("?") === -1) {
-		options.url += "?";
-	}
-  if (options.url.indexOf("&_=") === -1) {
-    options.url += cacheBuster;
-  }
-  else {
-    options.url.replace(/&_=\d+/, cacheBuster);
+		options.url += "?" + cacheBuster;
+	} else if (options.url.indexOf("_=") === -1) {
+    options.url += "&" + cacheBuster;
+  } else {
+    options.url.replace(/_=\d+/, cacheBuster);
   }
   request.open(options.type, options.url);
   request.setRequestHeader('content-type', options.contentType);
