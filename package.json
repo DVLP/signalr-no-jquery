@@ -16,7 +16,8 @@
     "babel-core": "6.21.0",
     "babel-eslint": "*",
     "babel-preset-es2015": "*",
-    "babel-preset-stage-0": "*"
+    "babel-preset-stage-0": "*",
+    "jest": "^26.0.1"
   },
   "homepage": "https://github.com/DVLP/signalr-no-jquery",
   "keywords": [
@@ -37,7 +38,8 @@
     "url": "git+https://github.com/DVLP/signalr-no-jquery.git"
   },
   "scripts": {
-    "build": "babel src --presets babel-preset-es2015 --out-dir build"
+    "build": "babel src --presets babel-preset-es2015 --out-dir build",
+    "test": "jest"
   },
   "version": "0.1.10"
 }
