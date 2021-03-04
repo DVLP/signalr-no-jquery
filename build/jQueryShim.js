@@ -3,6 +3,13 @@
 var jQueryDeferred = require('jquery-deferred');
 var jQueryParam = require('jquery-param');
 
+var qs = function qs(data) {
+  var results = [];
+  for (var name in data) {
+    results.push(name + '=' + encodeURIComponent(data[name]));
+  }return results.join('&');
+};
+
 var jqueryFunction = function jqueryFunction(subject) {
   var events = subject.events || {};
 
@@ -89,8 +96,8 @@ var ajax = function ajax(options) {
   request.withCredentials = options.xhrFields.withCredentials;
   var cacheBuster = "_=" + new Date().getTime();
   if (options.url.indexOf("?") === -1) {
-		options.url += "?" + cacheBuster;
-	} else if (options.url.indexOf("_=") === -1) {
+    options.url += "?" + cacheBuster;
+  } else if (options.url.indexOf("_=") === -1) {
     options.url += "&" + cacheBuster;
   } else {
     options.url = options.url.replace(/_=\d+/, cacheBuster);
@@ -104,7 +111,7 @@ var ajax = function ajax(options) {
     });
   }
 
-  request.send(options.data.data && 'data=' + encodeURIComponent(options.data.data));
+  request.send(options.data && qs(options.data));
 
   return {
     abort: function abort(reason) {
