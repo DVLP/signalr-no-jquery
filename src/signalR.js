@@ -718,7 +718,12 @@ const jQueryShim = require('./jQueryShim');
                             success: onSuccess
                         };
 
-                        if (connection.accessToken) {
+                        if (connection.accessToken && connection.apiAccessToken) {
+                            options.headers = {
+                                "Authorization": "Bearer " + connection.accessToken,
+                                "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                            };
+                        } else if (connection.accessToken) {
                             options.headers = { "Authorization": "Bearer " + connection.accessToken };
                         }
 
@@ -1289,10 +1294,19 @@ const jQueryShim = require('./jQueryShim');
                 url = connection.url + "/ping";
 
                 url = transportLogic.addQs(url, connection.qs);
+                var headers = {};
+                if (connection.accessToken && connection.apiAccessToken) {
+                    headers = {
+                        "Authorization": "Bearer " + connection.accessToken,
+                        "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                    };
+                } else if (connection.accessToken) {
+                    headers = { "Authorization": "Bearer " + connection.accessToken };
+                }
 
                 xhr = transportLogic.ajax(connection, {
                     url: url,
-                    headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                    headers,
                     success: function (result) {
                         var data;
 
@@ -1488,12 +1502,21 @@ const jQueryShim = require('./jQueryShim');
                     $(connection).triggerHandler(events.onError, [signalR._.transportError(signalR.resources.sendFailed, connection.transport, error, xhr), data]);
                 };
 
+            var headers = {};
+            if (connection.accessToken && connection.apiAccessToken) {
+                headers = {
+                    "Authorization": "Bearer " + connection.accessToken,
+                    "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                };
+            } else if (connection.accessToken) {
+                headers = { "Authorization": "Bearer " + connection.accessToken };
+            }
 
             xhr = transportLogic.ajax(connection, {
                 url: url,
                 type: connection.ajaxDataType === "jsonp" ? "GET" : "POST",
                 contentType: signalR._.defaultContentType,
-                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                headers,
                 data: {
                     data: payload
                 },
@@ -1538,12 +1561,22 @@ const jQueryShim = require('./jQueryShim');
 
             var url = getAjaxUrl(connection, "/abort");
 
+            var headers = {};
+            if (connection.accessToken && connection.apiAccessToken) {
+                headers = {
+                    "Authorization": "Bearer " + connection.accessToken,
+                    "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                };
+            } else if (connection.accessToken) {
+                headers = { "Authorization": "Bearer " + connection.accessToken };
+            }
+
             transportLogic.ajax(connection, {
                 url: url,
                 async: async,
                 timeout: 1000,
                 type: "POST",
-                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                headers,
                 dataType: "text" // We don't want to use JSONP here even when JSONP is enabled
             });
 
@@ -1564,9 +1597,19 @@ const jQueryShim = require('./jQueryShim');
                     connection.stop();
                 };
 
+            var headers = {};
+            if (connection.accessToken && connection.apiAccessToken) {
+                headers = {
+                    "Authorization": "Bearer " + connection.accessToken,
+                    "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                };
+            } else if (connection.accessToken) {
+                headers = { "Authorization": "Bearer " + connection.accessToken };
+            }
+
             connection._.startRequest = transportLogic.ajax(connection, {
                 url: getAjaxUrl(connection, "/start"),
-                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                headers,
                 success: function (result, statusText, xhr) {
                     var data;
 
@@ -2482,7 +2525,7 @@ const jQueryShim = require('./jQueryShim');
                         connect = (messageId === null),
                         reconnecting = !connect,
                         polling = !raiseReconnect,
-                        url = transportLogic.getUrl(instance, that.name, reconnecting, polling, true /* use Post for longPolling */),
+                        url = transportLogic.getUrl(instance, that.name, reconnecting, polling, false /* use Post for longPolling */),
                         postData = {};
 
                     if (instance.messageId) {
@@ -2499,6 +2542,17 @@ const jQueryShim = require('./jQueryShim');
                     }
 
                     connection.log("Opening long polling request to '" + url + "'.");
+
+                    var headers = {};
+                    if (connection.accessToken && connection.apiAccessToken) {
+                        headers = {
+                            "Authorization": "Bearer " + connection.accessToken,
+                            "ApiAuthorization": "Bearer " + connection.apiAccessToken
+                        };
+                    } else if (connection.accessToken) {
+                        headers = { "Authorization": "Bearer " + connection.accessToken };
+                    }
+
                     instance.pollXhr = transportLogic.ajax(connection, {
                         xhrFields: {
                             onprogress: function () {
@@ -2510,7 +2564,7 @@ const jQueryShim = require('./jQueryShim');
                         contentType: signalR._.defaultContentType,
                         data: postData,
                         timeout: connection._.pollTimeout,
-                        headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                        headers,
                         success: function (result) {
                             var minData,
                                 delay = 0,
