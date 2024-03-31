@@ -1,4 +1,5 @@
 # signalr-no-jquery
+
 ## SignalR JS Client with shimmed jQuery not polluting global namespace
 
 jQuery shim borrowed from [react-native-signalR](https://github.com/olofd/react-native-signalr)
@@ -8,13 +9,15 @@ jQueryShim file contains only bare-minimum of jQuery to make signalR client run.
 
 This package is not for use with ASP.NET Core version of SignalR.
 
+This version currently matches version 2.4.3 of [SignalR/SignalR](https://github.com/SignalR/SignalR) and works together with a hosted Azure SignalR Service.
+
 ### Usage
+
 ```
 npm i -D signalr-no-jquery
 ```
 
 #### ES6 Loader
-
 
 ```
 import { hubConnection } from 'signalr-no-jquery';
@@ -39,22 +42,34 @@ connection.start({ jsonp: true })
 .fail(function(){ console.log('Could not connect'); });
 
 ```
-#### Integration with @types/Signalr
 
-If you want to have got strong typing just install @types/Signalr
+#### Integration with typescript
+
+If you are working with typescript, there is a matching types package called @types/signalr-no-jquery
 
 ```
-npm install --save @types/signalr
+npm install --save @types/signalr-no-jquery
 ```
 
 and add at the beginning of the TypeScript file:
 
 ```
-    /// <reference types="@types/signalr" />
+import { connection } from 'signalr-no-jquery';
 ```
-Now in this file you can type for example
+
+Then you can use the connection as you would have before without $.
+
 ```
-private connection: SignalR.Hub.Connection;
+    const signalrConnection = hubConnection();
+    const hub = signalrConnection.createHubProxy('hubName');
+    hub.on('eventName', (): void => {
+        // handle your event here
+    });
+    signalrConnection.start().done(() => {
+        // do some initialization once you know the connection has been started
+        // For instance, call a method on the server
+        hub.invoke('serverMethod', someArgument);
+    });
 ```
 
 #### Update 4/01/2017: accessing global settings like through former $.connection
@@ -68,4 +83,3 @@ import { connection } from 'signalr-no-jquery';
 ### Problems
 
 Feel free to create pull requests and raise issues https://github.com/DVLP/signalr-no-jquery/issues
-

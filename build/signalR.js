@@ -11,7 +11,7 @@ var jQueryShim = require('./jQueryShim');
 /* jquery.signalR.core.js */
 /*global window:false */
 /*!
- * ASP.NET SignalR JavaScript Library v2.2.1
+ * ASP.NET SignalR JavaScript Library 2.4.1
  * http://signalr.net/
  *
  * Copyright (c) .NET Foundation. All rights reserved.
@@ -30,11 +30,14 @@ var jQueryShim = require('./jQueryShim');
         stoppedWhileLoading: "The connection was stopped during page load.",
         stoppedWhileNegotiating: "The connection was stopped during the negotiate request.",
         errorParsingNegotiateResponse: "Error parsing negotiate response.",
+        errorRedirectionExceedsLimit: "Negotiate redirection limit exceeded.",
         errorDuringStartRequest: "Error during start request. Stopping the connection.",
+        errorFromServer: "Error message received from the server: '{0}'.",
         stoppedDuringStartRequest: "The connection was stopped during the start request.",
         errorParsingStartResponse: "Error parsing start response: '{0}'. Stopping the connection.",
         invalidStartResponse: "Invalid start response: '{0}'. Stopping the connection.",
         protocolIncompatible: "You are using a version of the client that isn't compatible with the server. Client version {0}, server version {1}.",
+        aspnetCoreSignalrServer: "Detected a connection attempt to an ASP.NET Core SignalR Server. This client only supports connecting to an ASP.NET SignalR Server. See https://aka.ms/signalr-core-differences for details.",
         sendFailed: "Send failed.",
         parseFailed: "Failed at parsing response: {0}",
         longPollFailed: "Long polling request failed.",
@@ -48,7 +51,8 @@ var jQueryShim = require('./jQueryShim');
         noConnectionTransport: "Connection is in an invalid state, there is no transport active.",
         webSocketsInvalidState: "The Web Socket transport is in an invalid state, transitioning into reconnecting.",
         reconnectTimeout: "Couldn't reconnect within the configured timeout of {0} ms, disconnecting.",
-        reconnectWindowTimeout: "The client has been inactive since {0} and it has exceeded the inactivity timeout of {1} ms. Stopping the connection."
+        reconnectWindowTimeout: "The client has been inactive since {0} and it has exceeded the inactivity timeout of {1} ms. Stopping the connection.",
+        jsonpNotSupportedWithAccessToken: "The JSONP protocol does not support connections that require a Bearer token to connect, such as the Azure SignalR Service."
     };
 
     if (typeof $ !== "function") {
@@ -359,7 +363,8 @@ var jQueryShim = require('./jQueryShim');
                 lastActiveAt: new Date().getTime(),
                 beatInterval: 5000, // Default value, will only be overridden if keep alive is enabled,
                 beatHandle: null,
-                totalTransportConnectTimeout: 0 // This will be the sum of the TransportConnectTimeout sent in response to negotiate and connection.transportConnectTimeout
+                totalTransportConnectTimeout: 0, // This will be the sum of the TransportConnectTimeout sent in response to negotiate and connection.transportConnectTimeout
+                redirectQs: null
             };
             if (typeof logging === "boolean") {
                 this.logging = logging;
@@ -415,7 +420,16 @@ var jQueryShim = require('./jQueryShim');
 
         state: _signalR.connectionState.disconnected,
 
-        clientProtocol: "1.5",
+        clientProtocol: "2.1",
+
+        // We want to support older servers since the 2.0 change is to support redirection results, which isn't
+        // really breaking in the protocol. So if a user updates their client to 2.0 protocol version there's
+        // no reason they can't still connect to a 1.5 server. The 2.1 protocol is sent by the client so the SignalR
+        // service knows the client will use they query string returned via the RedirectUrl for subsequent requests.
+        // It doesn't matter whether the server reflects back 2.1 or continues using 2.0 as the protocol version.
+        supportedProtocols: ["1.5", "2.0", "2.1"],
+
+        negotiateRedirectSupportedProtocols: ["2.0", "2.1"],
 
         reconnectDelay: 2000,
 
@@ -441,7 +455,59 @@ var jQueryShim = require('./jQueryShim');
                 _initialize,
                 deferred = connection._deferral || $.Deferred(),
                 // Check to see if there is a pre-existing deferral that's being built on, if so we want to keep using it
-            parser = window.document.createElement("a");
+            parser = window.document.createElement("a"),
+                setConnectionUrl = function setConnectionUrl(connection, url) {
+                if (connection.url === url && connection.baseUrl) {
+                    // when the url related properties are already set
+                    return;
+                }
+
+                connection.url = url;
+
+                // Resolve the full url
+                parser.href = connection.url;
+                if (!parser.protocol || parser.protocol === ":") {
+                    connection.protocol = window.document.location.protocol;
+                    connection.host = parser.host || window.document.location.host;
+                } else {
+                    connection.protocol = parser.protocol;
+                    connection.host = parser.host;
+                }
+
+                connection.baseUrl = connection.protocol + "//" + connection.host;
+
+                // Set the websocket protocol
+                connection.wsProtocol = connection.protocol === "https:" ? "wss://" : "ws://";
+
+                // If the url is protocol relative, prepend the current windows protocol to the url.
+                if (connection.url.indexOf("//") === 0) {
+                    connection.url = window.location.protocol + connection.url;
+                    connection.log("Protocol relative URL detected, normalizing it to '" + connection.url + "'.");
+                }
+
+                if (connection.isCrossDomain(connection.url)) {
+                    connection.log("Auto detected cross domain url.");
+
+                    if (config.transport === "auto") {
+                        // Cross-domain does not support foreverFrame
+                        config.transport = ["webSockets", "serverSentEvents", "longPolling"];
+                    }
+
+                    if (typeof connection.withCredentials === "undefined") {
+                        connection.withCredentials = true;
+                    }
+
+                    // Determine if jsonp is the only choice for negotiation, ajaxSend and ajaxAbort.
+                    // i.e. if the browser doesn't supports CORS
+                    // If it is, ignore any preference to the contrary, and switch to jsonp.
+                    if (!$.support.cors) {
+                        connection.ajaxDataType = "jsonp";
+                        connection.log("Using jsonp because this browser doesn't support CORS.");
+                    }
+
+                    connection.contentType = _signalR._.defaultContentType;
+                }
+            };
 
             connection.lastError = null;
 
@@ -496,21 +562,6 @@ var jQueryShim = require('./jQueryShim');
 
             configureStopReconnectingTimeout(connection);
 
-            // Resolve the full url
-            parser.href = connection.url;
-            if (!parser.protocol || parser.protocol === ":") {
-                connection.protocol = window.document.location.protocol;
-                connection.host = parser.host || window.document.location.host;
-            } else {
-                connection.protocol = parser.protocol;
-                connection.host = parser.host;
-            }
-
-            connection.baseUrl = connection.protocol + "//" + connection.host;
-
-            // Set the websocket protocol
-            connection.wsProtocol = connection.protocol === "https:" ? "wss://" : "ws://";
-
             // If jsonp with no/auto transport is specified, then set the transport to long polling
             // since that is the only transport for which jsonp really makes sense.
             // Some developers might actually choose to specify jsonp for same origin requests
@@ -519,41 +570,14 @@ var jQueryShim = require('./jQueryShim');
                 config.transport = "longPolling";
             }
 
-            // If the url is protocol relative, prepend the current windows protocol to the url.
-            if (connection.url.indexOf("//") === 0) {
-                connection.url = window.location.protocol + connection.url;
-                connection.log("Protocol relative URL detected, normalizing it to '" + connection.url + "'.");
-            }
-
-            if (this.isCrossDomain(connection.url)) {
-                connection.log("Auto detected cross domain url.");
-
-                if (config.transport === "auto") {
-                    // TODO: Support XDM with foreverFrame
-                    config.transport = ["webSockets", "serverSentEvents", "longPolling"];
-                }
-
-                if (typeof config.withCredentials === "undefined") {
-                    config.withCredentials = true;
-                }
-
-                // Determine if jsonp is the only choice for negotiation, ajaxSend and ajaxAbort.
-                // i.e. if the browser doesn't supports CORS
-                // If it is, ignore any preference to the contrary, and switch to jsonp.
-                if (!config.jsonp) {
-                    config.jsonp = !$.support.cors;
-
-                    if (config.jsonp) {
-                        connection.log("Using jsonp because this browser doesn't support CORS.");
-                    }
-                }
-
-                connection.contentType = _signalR._.defaultContentType;
-            }
-
             connection.withCredentials = config.withCredentials;
 
+            // Save the original url so that we can reset it when we stop and restart the connection
+            connection._originalUrl = connection.url;
+
             connection.ajaxDataType = config.jsonp ? "jsonp" : "text";
+
+            setConnectionUrl(connection, connection.url);
 
             $(connection).bind(events.onStart, function (e, data) {
                 if ($.type(callback) === "function") {
@@ -603,7 +627,7 @@ var jQueryShim = require('./jQueryShim');
                         // success
                         // Firefox 11+ doesn't allow sync XHR withCredentials: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest#withCredentials
                         var isFirefox11OrGreater = _signalR._.firefoxMajorVersion(window.navigator.userAgent) >= 11,
-                            asyncAbort = !!connection.withCredentials && isFirefox11OrGreater;
+                            asyncAbort = true;
 
                         connection.log("The start request succeeded. Transitioning to the connected state.");
 
@@ -668,29 +692,99 @@ var jQueryShim = require('./jQueryShim');
             connection.log("Negotiating with '" + url + "'.");
 
             // Save the ajax negotiate request object so we can abort it if stop is called while the request is in flight.
-            connection._.negotiateRequest = _signalR.transports._logic.ajax(connection, {
-                url: url,
-                error: function error(_error, statusText) {
-                    // We don't want to cause any errors if we're aborting our own negotiate request.
-                    if (statusText !== _negotiateAbortText) {
-                        onFailed(_error, connection);
-                    } else {
-                        // This rejection will noop if the deferred has already been resolved or rejected.
-                        deferred.reject(_signalR._.error(resources.stoppedWhileNegotiating, null /* error */, connection._.negotiateRequest));
-                    }
-                },
-                success: function success(result) {
-                    var res,
-                        keepAliveData,
-                        protocolError,
-                        transports = [],
-                        supportedTransports = [];
+            connection._.negotiateRequest = function () {
+                var res,
+                    redirects = 0,
+                    MAX_REDIRECTS = 100,
+                    keepAliveData,
+                    protocolError,
+                    transports = [],
+                    supportedTransports = [],
+                    negotiate = function negotiate(connection, onSuccess) {
+                    var url = _signalR.transports._logic.prepareQueryString(connection, connection.url + "/negotiate");
+                    connection.log("Negotiating with '" + url + "'.");
+                    var options = {
+                        url: url,
+                        error: function error(_error, statusText) {
+                            // We don't want to cause any errors if we're aborting our own negotiate request.
+                            if (statusText !== _negotiateAbortText) {
+                                onFailed(_error, connection);
+                            } else {
+                                // This rejection will noop if the deferred has already been resolved or rejected.
+                                deferred.reject(_signalR._.error(resources.stoppedWhileNegotiating, null /* error */, connection._.negotiateRequest));
+                            }
+                        },
+                        success: onSuccess
+                    };
 
+                    if (connection.accessToken) {
+                        options.headers = { "Authorization": "Bearer " + connection.accessToken };
+                    }
+
+                    return _signalR.transports._logic.ajax(connection, options);
+                },
+                    callback = function callback(result) {
                     try {
                         res = connection._parseResponse(result);
                     } catch (error) {
                         onFailed(_signalR._.error(resources.errorParsingNegotiateResponse, error), connection);
                         return;
+                    }
+
+                    // Check if the server is an ASP.NET Core app
+                    if (res.availableTransports) {
+                        protocolError = _signalR._.error(resources.aspnetCoreSignalrServer);
+                        $(connection).triggerHandler(events.onError, [protocolError]);
+                        deferred.reject(protocolError);
+                        return;
+                    }
+
+                    if (!res.ProtocolVersion || connection.supportedProtocols.indexOf(res.ProtocolVersion) === -1) {
+                        protocolError = _signalR._.error(_signalR._.format(resources.protocolIncompatible, connection.clientProtocol, res.ProtocolVersion));
+                        $(connection).triggerHandler(events.onError, [protocolError]);
+                        deferred.reject(protocolError);
+
+                        return;
+                    }
+
+                    // Check for a redirect response (which must have a ProtocolVersion of 2.0 or greater)
+                    // ProtocolVersion 2.1 is the highest supported by the client, so we can just check for 2.0 or 2.1 for now
+                    // instead of trying to do proper version string comparison in JavaScript.
+                    if (connection.negotiateRedirectSupportedProtocols.indexOf(res.ProtocolVersion) !== -1) {
+                        if (res.Error) {
+                            protocolError = _signalR._.error(_signalR._.format(resources.errorFromServer, res.Error));
+                            $(connection).triggerHandler(events.onError, [protocolError]);
+                            deferred.reject(protocolError);
+                            return;
+                        } else if (res.RedirectUrl) {
+                            if (redirects === MAX_REDIRECTS) {
+                                onFailed(_signalR._.error(resources.errorRedirectionExceedsLimit), connection);
+                                return;
+                            }
+
+                            if (config.transport === "auto") {
+                                // Redirected connections do not support foreverFrame
+                                config.transport = ["webSockets", "serverSentEvents", "longPolling"];
+                            }
+
+                            connection.log("Received redirect to: " + res.RedirectUrl);
+                            connection.accessToken = res.AccessToken;
+
+                            var splitUrlAndQs = res.RedirectUrl.split("?", 2);
+                            setConnectionUrl(connection, splitUrlAndQs[0]);
+
+                            // Update redirectQs with query string from only the most recent RedirectUrl.
+                            connection._.redirectQs = splitUrlAndQs.length === 2 ? splitUrlAndQs[1] : null;
+
+                            if (connection.ajaxDataType === "jsonp" && connection.accessToken) {
+                                onFailed(_signalR._.error(resources.jsonpNotSupportedWithAccessToken), connection);
+                                return;
+                            }
+
+                            redirects++;
+                            negotiate(connection, callback);
+                            return;
+                        }
                     }
 
                     keepAliveData = connection._.keepAliveData;
@@ -728,14 +822,6 @@ var jQueryShim = require('./jQueryShim');
 
                     connection.reconnectWindow = connection.disconnectTimeout + (keepAliveData.timeout || 0);
 
-                    if (!res.ProtocolVersion || res.ProtocolVersion !== connection.clientProtocol) {
-                        protocolError = _signalR._.error(_signalR._.format(resources.protocolIncompatible, connection.clientProtocol, res.ProtocolVersion));
-                        $(connection).triggerHandler(events.onError, [protocolError]);
-                        deferred.reject(protocolError);
-
-                        return;
-                    }
-
                     $.each(_signalR.transports, function (key) {
                         if (key.indexOf("_") === 0 || key === "webSockets" && !res.TryWebSockets) {
                             return true;
@@ -745,19 +831,21 @@ var jQueryShim = require('./jQueryShim');
 
                     if ($.isArray(config.transport)) {
                         $.each(config.transport, function (_, transport) {
-                            if ($.inArray(supportedTransports, transport)) {
+                            if ($.inArray(transport, supportedTransports) >= 0) {
                                 transports.push(transport);
                             }
                         });
                     } else if (config.transport === "auto") {
                         transports = supportedTransports;
-                    } else if ($.inArray(supportedTransports, config.transport)) {
+                    } else if ($.inArray(config.transport, supportedTransports) >= 0) {
                         transports.push(config.transport);
                     }
 
                     _initialize(transports);
-                }
-            });
+                };
+
+                return negotiate(connection, callback);
+            }();
 
             return deferred.promise();
         },
@@ -955,6 +1043,19 @@ var jQueryShim = require('./jQueryShim');
 
             // Clear out our message buffer
             connection._.connectingMessageBuffer.clear();
+
+            // Clean up this event
+            $(connection).unbind(events.onStart);
+
+            // Reset the URL and clear the access token
+            delete connection.accessToken;
+            delete connection.protocol;
+            delete connection.host;
+            delete connection.baseUrl;
+            delete connection.wsProtocol;
+            delete connection.contentType;
+            connection.url = connection._originalUrl;
+            connection._.redirectQs = null;
 
             // Trigger the disconnect event
             changeState(connection, connection.state, _signalR.connectionState.disconnected);
@@ -1188,6 +1289,7 @@ var jQueryShim = require('./jQueryShim');
 
                 xhr = transportLogic.ajax(connection, {
                     url: url,
+                    headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
                     success: function success(result) {
                         var data;
 
@@ -1228,8 +1330,13 @@ var jQueryShim = require('./jQueryShim');
             // Use addQs to start since it handles the ?/& prefix for us
             preparedUrl = transportLogic.addQs(url, "clientProtocol=" + connection.clientProtocol);
 
-            // Add the user-specified query string params if any
-            preparedUrl = transportLogic.addQs(preparedUrl, connection.qs);
+            if (typeof connection._.redirectQs === "string") {
+                // Add the redirect-specified query string params if any
+                preparedUrl = transportLogic.addQs(preparedUrl, connection._.redirectQs);
+            } else {
+                // Otherwise, add the user-specified query string params if any
+                preparedUrl = transportLogic.addQs(preparedUrl, connection.qs);
+            }
 
             if (connection.token) {
                 preparedUrl += "&connectionToken=" + window.encodeURIComponent(connection.token);
@@ -1295,6 +1402,13 @@ var jQueryShim = require('./jQueryShim');
             url += "?" + qs;
             url = transportLogic.prepareQueryString(connection, url);
 
+            // With sse or ws, access_token in request header is not supported
+            if (connection.transport && connection.accessToken) {
+                if (connection.transport.name === "serverSentEvents" || connection.transport.name === "webSockets") {
+                    url += "&access_token=" + window.encodeURIComponent(connection.accessToken);
+                }
+            }
+
             if (!ajaxPost) {
                 url += "&tid=" + Math.floor(Math.random() * 11);
             }
@@ -1309,7 +1423,8 @@ var jQueryShim = require('./jQueryShim');
                 Initialized: typeof minPersistentResponse.S !== "undefined" ? true : false,
                 ShouldReconnect: typeof minPersistentResponse.T !== "undefined" ? true : false,
                 LongPollDelay: minPersistentResponse.L,
-                GroupsToken: minPersistentResponse.G
+                GroupsToken: minPersistentResponse.G,
+                Error: minPersistentResponse.E
             };
         },
 
@@ -1338,6 +1453,7 @@ var jQueryShim = require('./jQueryShim');
                 url: url,
                 type: connection.ajaxDataType === "jsonp" ? "GET" : "POST",
                 contentType: signalR._.defaultContentType,
+                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
                 data: {
                     data: payload
                 },
@@ -1385,7 +1501,9 @@ var jQueryShim = require('./jQueryShim');
                 url: url,
                 async: async,
                 timeout: 1000,
-                type: "POST"
+                type: "POST",
+                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
+                dataType: "text" // We don't want to use JSONP here even when JSONP is enabled
             });
 
             connection.log("Fired ajax abort async = " + async + ".");
@@ -1407,6 +1525,7 @@ var jQueryShim = require('./jQueryShim');
 
             connection._.startRequest = transportLogic.ajax(connection, {
                 url: getAjaxUrl(connection, "/start"),
+                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
                 success: function success(result, statusText, xhr) {
                     var data;
 
@@ -1461,11 +1580,26 @@ var jQueryShim = require('./jQueryShim');
         processMessages: function processMessages(connection, minData, onInitialized) {
             var data;
 
+            if (minData && typeof minData.I !== "undefined") {
+                // This is a response to a message the client sent
+                transportLogic.triggerReceived(connection, minData);
+                return;
+            }
+
             // Update the last message time stamp
             transportLogic.markLastMessage(connection);
 
             if (minData) {
+                // This is a message send directly to the client
                 data = transportLogic.maximizePersistentResponse(minData);
+
+                if (data.Error) {
+                    // This is a global error, stop the connection.
+                    connection.log("Received an error message from the server: " + minData.E);
+                    $(connection).triggerHandler(signalR.events.onError, [signalR._.error(minData.E, /* source */"ServerError")]);
+                    connection.stop( /* async */false, /* notifyServer */false);
+                    return;
+                }
 
                 transportLogic.updateGroups(connection, data.GroupsToken);
 
@@ -1726,14 +1860,7 @@ var jQueryShim = require('./jQueryShim');
                     }
 
                     if (data) {
-                        // data.M is PersistentResponse.Messages
-                        if ($.isEmptyObject(data) || data.M) {
-                            transportLogic.processMessages(connection, data, onSuccess);
-                        } else {
-                            // For websockets we need to trigger onReceived
-                            // for callbacks to outgoing hub calls.
-                            transportLogic.triggerReceived(connection, data);
-                        }
+                        transportLogic.processMessages(connection, data, onSuccess);
                     }
                 };
             }
@@ -2010,6 +2137,14 @@ var jQueryShim = require('./jQueryShim');
         iframeClearThreshold: 50,
 
         start: function start(connection, onSuccess, onFailed) {
+            if (connection.accessToken) {
+                if (onFailed) {
+                    connection.log("Forever Frame does not support connections that require a Bearer token to connect, such as the Azure SignalR Service.");
+                    onFailed();
+                }
+                return;
+            }
+
             var that = this,
                 frameId = transportLogic.foreverFrame.count += 1,
                 url,
@@ -2150,8 +2285,8 @@ var jQueryShim = require('./jQueryShim');
                 }
 
                 // Ensure the iframe is where we left it
-                if (connection.frame.parentNode === window.document.body) {
-                    window.document.body.removeChild(connection.frame);
+                if (connection.frame.parentNode === window.document.documentElement) {
+                    window.document.documentElement.removeChild(connection.frame);
                 }
 
                 delete transportLogic.foreverFrame.connections[connection.frameId];
@@ -2288,6 +2423,7 @@ var jQueryShim = require('./jQueryShim');
                         contentType: signalR._.defaultContentType,
                         data: postData,
                         timeout: connection._.pollTimeout,
+                        headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
                         success: function success(result) {
                             var minData,
                                 delay = 0,
@@ -2448,6 +2584,7 @@ var jQueryShim = require('./jQueryShim');
 
 (function ($, window, undefined) {
 
+    var nextGuid = 0;
     var eventNamespace = ".hubProxy",
         signalR = $.signalR;
 
@@ -2507,6 +2644,13 @@ var jQueryShim = require('./jQueryShim');
         }
     }
 
+    function isCallbackFromGeneratedHubProxy(callback) {
+        // https://github.com/SignalR/SignalR/issues/4310
+        // The stringified callback from the old generated hub proxy is 137 characters in Edge, Firefox and Chrome.
+        // We slice to avoid wasting too many cycles searching through the text of a long large function.
+        return $.isFunction(callback) && callback.toString().slice(0, 256).indexOf("// Call the client hub method") >= 0;
+    }
+
     // hubProxy
     function hubProxy(hubConnection, hubName) {
         /// <summary>
@@ -2532,38 +2676,73 @@ var jQueryShim = require('./jQueryShim');
             return hasMembers(this._.callbackMap);
         },
 
-        on: function on(eventName, callback) {
+        on: function on(eventName, callback, callbackIdentity) {
             /// <summary>Wires up a callback to be invoked when a invocation request is received from the server hub.</summary>
             /// <param name="eventName" type="String">The name of the hub event to register the callback for.</param>
             /// <param name="callback" type="Function">The callback to be invoked.</param>
+            /// <param name="callbackIdentity" type="Object">An optional object to use as the "identity" for the callback when checking if the handler has already been registered. Defaults to the value of 'callback' if not provided.</param>
             var that = this,
-                callbackMap = that._.callbackMap;
+                callbackMap = that._.callbackMap,
+                isFromOldGeneratedHubProxy = !callbackIdentity && isCallbackFromGeneratedHubProxy(callback);
+
+            // We need the third "identity" argument because the registerHubProxies call made by signalr/js wraps the user-provided callback in a custom wrapper which breaks the identity comparison.
+            // callbackIdentity allows the caller of `on` to provide a separate object to use as the "identity". `registerHubProxies` uses the original user callback as this identity object.
+            callbackIdentity = callbackIdentity || callback;
+
+            // Assign a global ID to the identity object. This tags the object so we can detect the same object when it comes back.
+            if (!callbackIdentity._signalRGuid) {
+                callbackIdentity._signalRGuid = nextGuid++;
+            }
 
             // Normalize the event name to lowercase
             eventName = eventName.toLowerCase();
 
             // If there is not an event registered for this callback yet we want to create its event space in the callback map.
-            if (!callbackMap[eventName]) {
-                callbackMap[eventName] = {};
+            var callbackSpace = callbackMap[eventName];
+            if (!callbackSpace) {
+                callbackSpace = [];
+                callbackMap[eventName] = callbackSpace;
             }
 
-            // Map the callback to our encompassed function
-            callbackMap[eventName][callback] = function (e, data) {
+            // Check if there's already a registration
+            var registration;
+            for (var i = 0; i < callbackSpace.length; i++) {
+                if (callbackSpace[i].guid === callbackIdentity._signalRGuid || isFromOldGeneratedHubProxy && callbackSpace[i].isFromOldGeneratedHubProxy) {
+                    registration = callbackSpace[i];
+                }
+            }
+
+            // Create a registration if there isn't one already
+            if (!registration) {
+                registration = {
+                    guid: callbackIdentity._signalRGuid,
+                    eventHandlers: [],
+                    isFromOldGeneratedHubProxy: isFromOldGeneratedHubProxy
+                };
+                callbackMap[eventName].push(registration);
+            }
+
+            var handler = function handler(e, data) {
                 callback.apply(that, data);
             };
+            registration.eventHandlers.push(handler);
 
-            $(that).bind(makeEventName(eventName), callbackMap[eventName][callback]);
+            $(that).bind(makeEventName(eventName), handler);
 
             return that;
         },
 
-        off: function off(eventName, callback) {
+        off: function off(eventName, callback, callbackIdentity) {
             /// <summary>Removes the callback invocation request from the server hub for the given event name.</summary>
             /// <param name="eventName" type="String">The name of the hub event to unregister the callback for.</param>
-            /// <param name="callback" type="Function">The callback to be invoked.</param>
+            /// <param name="callback" type="Function">The callback to be removed.</param>
+            /// <param name="callbackIdentity" type="Object">An optional object to use as the "identity" when looking up the callback. Corresponds to the same parameter provided to 'on'. Defaults to the value of 'callback' if not provided.</param>
             var that = this,
                 callbackMap = that._.callbackMap,
-                callbackSpace;
+                callbackSpace,
+                isFromOldGeneratedHubProxy = !callbackIdentity && isCallbackFromGeneratedHubProxy(callback);
+
+            callbackIdentity = callbackIdentity || callback;
 
             // Normalize the event name to lowercase
             eventName = eventName.toLowerCase();
@@ -2572,16 +2751,32 @@ var jQueryShim = require('./jQueryShim');
 
             // Verify that there is an event space to unbind
             if (callbackSpace) {
-                // Only unbind if there's an event bound with eventName and a callback with the specified callback
-                if (callbackSpace[callback]) {
-                    $(that).unbind(makeEventName(eventName), callbackSpace[callback]);
 
-                    // Remove the callback from the callback map
-                    delete callbackSpace[callback];
+                if (callback) {
+                    // Find the callback registration
+                    var callbackRegistration;
+                    var callbackIndex;
+                    for (var i = 0; i < callbackSpace.length; i++) {
+                        if (callbackSpace[i].guid === callbackIdentity._signalRGuid || isFromOldGeneratedHubProxy && callbackSpace[i].isFromOldGeneratedHubProxy) {
+                            callbackIndex = i;
+                            callbackRegistration = callbackSpace[i];
+                        }
+                    }
 
-                    // Check if there are any members left on the event, if not we need to destroy it.
-                    if (!hasMembers(callbackSpace)) {
-                        delete callbackMap[eventName];
+                    // Only unbind if there's an event bound with eventName and a callback with the specified callback
+                    if (callbackRegistration) {
+                        // Unbind all event handlers associated with the registration.
+                        for (var j = 0; j < callbackRegistration.eventHandlers.length; j++) {
+                            $(that).unbind(makeEventName(eventName), callbackRegistration.eventHandlers[j]);
+                        }
+
+                        // Remove the registration from the list
+                        callbackSpace.splice(i, 1);
+
+                        // Check if there are any registrations left, if not we need to destroy it.
+                        if (callbackSpace.length === 0) {
+                            delete callbackMap[eventName];
+                        }
                     }
                 } else if (!callback) {
                     // Check if we're removing the whole event and we didn't error because of an invalid callback
@@ -2722,8 +2917,8 @@ var jQueryShim = require('./jQueryShim');
             // We have to handle progress updates first in order to ensure old clients that receive
             // progress updates enter the return value branch and then no-op when they can't find
             // the callback in the map (because the minData.I value will not be a valid callback ID)
+            // Process progress notification
             if (typeof minData.P !== "undefined") {
-                // Process progress notification
                 dataCallbackId = minData.P.I.toString();
                 callback = connection._.invocationCallbacks[dataCallbackId];
                 if (callback) {
@@ -2867,7 +3062,8 @@ var jQueryShim = require('./jQueryShim');
 /*global window:false */
 /// <reference path="jquery.signalR.core.js" />
 (function ($, undefined) {
-    $.signalR.version = "2.2.1";
+    // This will be modified by the build script
+    $.signalR.version = "2.4.1";
 })(jQueryShim);
 
 var hubConnection = exports.hubConnection = jQueryShim.hubConnection;
