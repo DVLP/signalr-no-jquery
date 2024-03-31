@@ -9,12 +9,16 @@ jQueryShim file contains only bare-minimum of jQuery to make signalR client run.
 
 This package is not for use with ASP.NET Core version of SignalR.
 
-This version currently matches version 2.4.1 of [SignalR/SignalR](https://github.com/SignalR/SignalR) and works together with a hosted Azure SignalR Service.
+This version currently matches version 2.4.3 of [SignalR/SignalR](https://github.com/SignalR/SignalR) and works together with a hosted Azure SignalR Service.
 
 ### Usage
 
 ```
-npm i -D signalr-no-jquery
+npm i signalr-no-jquery
+```
+TypeScript definitions
+```
+npm i @types/signalr-no-jquery
 ```
 
 #### ES6 Loader

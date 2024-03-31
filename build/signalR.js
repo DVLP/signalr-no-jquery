@@ -11,7 +11,7 @@ var jQueryShim = require('./jQueryShim');
 /* jquery.signalR.core.js */
 /*global window:false */
 /*!
- * ASP.NET SignalR JavaScript Library 2.4.1
+ * ASP.NET SignalR JavaScript Library 2.4.3
  * http://signalr.net/
  *
  * Copyright (c) .NET Foundation. All rights reserved.
@@ -259,7 +259,7 @@ var jQueryShim = require('./jQueryShim');
 
     // .on() was added in version 1.7.0, .load() was removed in version 3.0.0 so we fallback to .load() if .on() does
     // not exist to not break existing applications
-    if (typeof _pageWindow.on == "function") {
+    if (typeof _pageWindow.on === "function") {
         _pageWindow.on("load", function () {
             _pageLoaded = true;
         });
@@ -635,7 +635,9 @@ var jQueryShim = require('./jQueryShim');
                             _signalR.transports._logic.monitorKeepAlive(connection);
                         }
 
-                        _signalR.transports._logic.startHeartbeat(connection);
+                        if (connection._.keepAliveData.activated) {
+                            _signalR.transports._logic.startHeartbeat(connection);
+                        }
 
                         // Used to ensure low activity clients maintain their authentication.
                         // Must be configured once a transport has been decided to perform valid ping requests.
@@ -1497,14 +1499,28 @@ var jQueryShim = require('./jQueryShim');
 
             var url = getAjaxUrl(connection, "/abort");
 
-            transportLogic.ajax(connection, {
-                url: url,
-                async: async,
-                timeout: 1000,
-                type: "POST",
-                headers: connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {},
-                dataType: "text" // We don't want to use JSONP here even when JSONP is enabled
-            });
+            var requestHeaders = connection.accessToken ? { "Authorization": "Bearer " + connection.accessToken } : {};
+
+            //option #1 - send "fetch" with keepalive
+            if (window.fetch) {
+                // use the fetch API with keepalive
+                window.fetch(url, {
+                    method: "POST",
+                    keepalive: true,
+                    headers: requestHeaders,
+                    credentials: connection.withCredentials === true ? "include" : "same-origin"
+                });
+            } else {
+                // fetch is not available - fallback to $.ajax
+                transportLogic.ajax(connection, {
+                    url: url,
+                    async: async,
+                    timeout: 1000,
+                    type: "POST",
+                    headers: requestHeaders,
+                    dataType: "text" // We don't want to use JSONP here even when JSONP is enabled
+                });
+            }
 
             connection.log("Fired ajax abort async = " + async + ".");
         },
@@ -1665,6 +1681,7 @@ var jQueryShim = require('./jQueryShim');
 
         markLastMessage: function markLastMessage(connection) {
             connection._.lastMessageAt = new Date().getTime();
+            connection._.lastActiveAt = connection._.lastMessageAt;
         },
 
         markActive: function markActive(connection) {
@@ -1695,15 +1712,18 @@ var jQueryShim = require('./jQueryShim');
         },
 
         verifyLastActive: function verifyLastActive(connection) {
-            if (new Date().getTime() - connection._.lastActiveAt >= connection.reconnectWindow) {
-                var message = signalR._.format(signalR.resources.reconnectWindowTimeout, new Date(connection._.lastActiveAt), connection.reconnectWindow);
-                connection.log(message);
-                $(connection).triggerHandler(events.onError, [signalR._.error(message, /* source */"TimeoutException")]);
-                connection.stop( /* async */false, /* notifyServer */false);
-                return false;
+            // If there is no keep alive configured, we cannot assume that timer callbacks will
+            // run frequently enough to keep lastActiveAt updated.
+            // https://github.com/SignalR/SignalR/issues/4536
+            if (!connection._.keepAliveData.activated || new Date().getTime() - connection._.lastActiveAt < connection.reconnectWindow) {
+                return true;
             }
 
-            return true;
+            var message = signalR._.format(signalR.resources.reconnectWindowTimeout, new Date(connection._.lastActiveAt), connection.reconnectWindow);
+            connection.log(message);
+            $(connection).triggerHandler(events.onError, [signalR._.error(message, /* source */"TimeoutException")]);
+            connection.stop( /* async */false, /* notifyServer */false);
+            return false;
         },
 
         reconnect: function reconnect(connection, transportName) {
@@ -3063,7 +3083,7 @@ var jQueryShim = require('./jQueryShim');
 /// <reference path="jquery.signalR.core.js" />
 (function ($, undefined) {
     // This will be modified by the build script
-    $.signalR.version = "2.4.1";
+    $.signalR.version = "2.4.3";
 })(jQueryShim);
 
 var hubConnection = exports.hubConnection = jQueryShim.hubConnection;
